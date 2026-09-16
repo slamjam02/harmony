@@ -1,6 +1,7 @@
-import { initializePage } from "./app.js";
 import { session, userCache, addMessageToQueue, processMessageQueue, getGroup, getChannel } from "./session.js";
-import { populate, updateUserPfp, deleteMessage, displayTypingIndicator } from "./dom.js";
+import { initDOM, updateUserPfp } from "./dom/dom.js";
+import { deleteMessage, displayTypingIndicator } from "./dom/chat.js";
+import { populateChannelList, populateGroupList } from "./dom/sidebar.js";
 
 const socket = new WebSocket("ws://" + window.location.hostname + ":" + window.location.port);
 
@@ -11,18 +12,18 @@ const receiveHandlers = {
     validToken:         function (userId) {
         console.log("Valid token message from server");
         session.userId = userId;
-        initializePage();
+        initDOM();
     },
     groupList:          function (groups) {
         console.log("Group list message from server");
-        populate.groupList(groups);
+        populateGroupList(groups);
     },
     groupInfo:          function (groupId, channels) {
         console.log("Group info message from server. Server Group ID = ", groupId, " Session Group ID = ", getGroup());
         console.log(channels);
         if(getGroup() === groupId) {
             console.log("Channel list appending.");
-            populate.channelList(channels, groupId);
+            populateChannelList(channels, groupId);
         }
     },
     messages:           function (channelId, messages) {

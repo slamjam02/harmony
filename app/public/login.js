@@ -19,11 +19,10 @@ function setStateText(text) {
     stateText.textContent = text;
 }
 
-
 window.addEventListener('pageshow', function(event) {
-  if (event.persisted) {
-    setStateText("");
-  }
+    if (event.persisted) {
+        setStateText("");
+    }
 });
 
 function loginFetch(username, password){
@@ -45,8 +44,6 @@ function loginFetch(username, password){
         errorStateText(text);
     });
 }
-
-
 
 function signupFetch(username, password){
     fetch(`/signup?username=${username}&password=${password}`, {
@@ -72,7 +69,6 @@ function appFetch(token) {
     document.cookie = `token=${token}`;
     window.location.href = "/app";
 }
-
 
 function onLogin(event) {
     event.preventDefault();

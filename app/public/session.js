@@ -1,6 +1,6 @@
-import { getElement, prependMessage, fixMessages, getChatInputFieldText } from "./dom.js";
-import { sendHandlers } from "./socket.js";
 
+import { sendHandlers } from "./socket.js";
+import { getChatInputFieldText, prependMessage, fixMessages, getMessageDiv, clearReplyContainer } from "./dom/chat.js";
 
 export const session = {
     url: new URL(window.location.href),
@@ -13,13 +13,10 @@ export const session = {
     messageReplyId: null,
     announcedTypingStatus: false
 };
-
-
-export let messageQueue = [];
-export let userCache = {};
-
-export let groupList = [];
-export let channelList = [];
+export const messageQueue = [];
+export const userCache = {};
+export const groupList = [];
+export const channelList = [];
 
 export function inChannel() {
     return getChannel() >= 0;
@@ -72,18 +69,16 @@ export function addMessageToQueue(message){
         },
         execute: function () {
             this.requestSent = false;
-            if(session.oldestMessageIndex == -1 || session.oldestMessageIndex > this.message.index) {
-                session.oldestMessageIndex = this.message.index;
-            }
+            let oldestMessageAlreadyLoaded = session.oldestMessageIndex == -1 || session.oldestMessageIndex > this.message.index;
+            if( oldestMessageAlreadyLoaded ) { session.oldestMessageIndex = this.message.index; }
             let userMatch = userCache[this.message.userId];
             let username = userMatch ? userMatch.name : "Unknown";
-            let messageDiv = getElement.messageDiv(this.message.id, this.message.contents, username, this.message.userId, this.message.timestamp, this.message.index, this.message.fileId, this.message.reply);
+            let messageDiv = getMessageDiv(this.message.id, this.message.contents, username, this.message.userId, this.message.timestamp, this.message.index, this.message.fileId, this.message.reply);
             prependMessage(messageDiv);
             
         }
     });
 }
-
 
 export function uploadFile(file, handler) {
     let reader = new FileReader();
@@ -124,4 +119,46 @@ export function processMessageQueue() {
         messageQueue.shift();
     }
     fixMessages();
+}
+
+export function createGroup(name) {
+    console.log("Create group function called with name: ", name);
+    sendHandlers.createThing("group", name);
+}
+
+export function signout() {
+    document.cookie = "token=deleted";
+    window.location.href = "/";
+
+}
+
+export function loadSomeOlderMessages() {
+    if (session.oldestMessageIndex <= 1) return;
+    console.log("Scrolled to top! Loading more messages!");
+    sendHandlers.getMessages(getChannel(), session.oldestMessageIndex - 1);
+}
+
+export function sendMessage() {
+    if (!inChannel()) {
+        console.log("Cannot send message. Not currently in a channel.");
+        return;
+    }
+    let messageText = getChatInputFieldText(true);
+    if(messageText === "" && session.messageFileId === null) {
+        console.log("Cannot send message. Nothing in text field and no file attached.");
+        return;
+    }
+    console.log("Sending message in channel ", getChannel(), ": ", messageText);
+    sendHandlers.sendMessage(getChannel(), messageText, session.messageFileId, session.messageReplyId);
+    session.messageReplyId = null;
+    session.messageFileId = null;
+    clearReplyContainer();
+}
+
+export function pfpLink(userId) {
+    if (userId in userCache) {
+        return `/file?id=${userCache[userId].pfpId}`;
+    } else {
+        return "";
+    }
 }
